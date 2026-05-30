@@ -1,0 +1,47 @@
+{
+  "enabledPlugins": {
+    "claude-code-setup@claude-plugins-official": true
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd C:\\Users\\Yo\\Desktop\\finanzas\\frontend && npx tsc --noEmit 2>&1 | head -20"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '%input%' | grep -q 'frontend/src' && cd C:\\Users\\Yo\\Desktop\\finanzas\\frontend && npx eslint src --ext .ts,.tsx 2>&1 | head -20 || exit 0"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '%input%' | grep -q 'supabase/functions' && echo 'REMINDER: recordá deployar con /deploy-functions <nombre>' || exit 0"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '%input%' | grep -qE '\\.(env|local\\.json|credentials)' && echo 'BLOCK: editing secrets file requires explicit confirmation' && exit 1 || exit 0"
+          }
+        ]
+      }
+    ]
+  }
+}
