@@ -109,7 +109,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Último mes para sync incremental
+  // Last month for incremental sync
   const beginDate = new Date();
   beginDate.setMonth(beginDate.getMonth() - 1);
   const beginStr = beginDate.toISOString().split('T')[0];
@@ -197,7 +197,7 @@ Deno.serve(async (req) => {
     );
   }
 
-  // Clasificar con Haiku
+  // Classify with Haiku
   const { data: categories } = await supabase
     .from('categories')
     .select('id, name');
