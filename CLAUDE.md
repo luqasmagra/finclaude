@@ -72,9 +72,6 @@ finanzas/
     │   ├── parser.md
     │   ├── reporter.md
     │   └── security-reviewer.md
-    ├── commands/
-    │   ├── code-review.md
-    │   └── fix-review.md
     └── skills/
         ├── check-logs/
         ├── db-query/
