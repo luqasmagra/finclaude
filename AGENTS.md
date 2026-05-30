@@ -12,7 +12,7 @@ Single-user personal finance app. Natural-language chat interface. All Claude AP
 - **Frontend dev:** `cd frontend && npm run dev` (Vite dev server)
 - **Frontend build:** `cd frontend && npm run build` (TypeScript + Vite build)
 - **Frontend preview:** `cd frontend && npm run preview` (preview production build)
-- ESLint 9 configurado (`frontend/eslint.config.js`) con @typescript-eslint + eslint-plugin-react-hooks.
+- ESLint 9 configured (`frontend/eslint.config.js`) with @typescript-eslint + eslint-plugin-react-hooks.
 - No test runner ni formatter configurados.
 - GitHub: https://github.com/luqasmagra/finclaude
 
@@ -37,7 +37,7 @@ supabase/functions/
   ├── chat/index.ts              ← main entry: classify → transaction or query (deployed v12)
   ├── import-statement/index.ts  ← two-mode: parse + confirm (Sonnet)
   ├── mp-webhook/index.ts        ← Mercado Pago webhook receiver (deployed v6, no Claude)
-  └── mp-sync/index.ts           ← sync manual de MP para transferencias billetera→billetera (deployed v13, no Claude)
+  └── mp-sync/index.ts           ← manual MP sync for wallet-to-wallet transfers (deployed v13, no Claude)
 
 DB tables: accounts, transactions, categories, conversations
   └── RLS enabled on all 4 (FOR ALL TO authenticated)
