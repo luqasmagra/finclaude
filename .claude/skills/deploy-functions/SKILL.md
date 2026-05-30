@@ -7,9 +7,9 @@ disable-model-invocation: true
 Deploy the specified Supabase Edge Function(s) for project aqkymmcfktldheqgckja.
 
 If an argument is provided, deploy only that function:
-  supabase functions deploy <arg> --project-ref aqkymmcfktldheqgckja
+  npx supabase functions deploy <arg> --project-ref aqkymmcfktldheqgckja
 
 If no argument or "all", deploy all functions:
-  supabase functions deploy --project-ref aqkymmcfktldheqgckja
+  npx supabase functions deploy --project-ref aqkymmcfktldheqgckja
 
 Run from: C:\Users\Yo\Desktop\finanzas
