@@ -168,18 +168,15 @@ Deno.serve(async (req) => {
     );
   }
 
-  const knownIds = new Set<string>();
-  for (const payment of payments) {
-    const { data: existing } = await supabase
-      .from('transactions')
-      .select('id')
-      .eq('external_id', String(payment.id))
-      .maybeSingle();
+  const allPaymentIds = payments.map((p: Record<string, unknown>) => String(p.id));
+  const { data: existingTxs } = await supabase
+    .from('transactions')
+    .select('external_id')
+    .in('external_id', allPaymentIds);
 
-    if (existing) {
-      knownIds.add(String(payment.id));
-    }
-  }
+  const knownIds = new Set<string>(
+    existingTxs?.map((tx: { external_id: string }) => tx.external_id) ?? [],
+  );
 
   const newPayments = payments.filter(
     (p: Record<string, unknown>) => !knownIds.has(String(p.id)),
