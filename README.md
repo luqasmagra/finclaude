@@ -22,13 +22,13 @@
 
 ## 1. Overview
 
-| | |
-|---|---|
-| **Stack** | React 19 + TypeScript + Vite + Tailwind CSS · Supabase Auth/DB/Edge Functions · Anthropic Claude |
-| **Supabase project** | `aqkymmcfktldheqgckja` |
-| **Models** | Haiku 4.5 (classification and parsing) · Sonnet 4.6 (analysis and bulk extraction) |
-| **Auth** | Supabase Auth email/password + @supabase/auth-helpers-react, single user |
-| **AI entry point** | All Claude processing runs in Edge Functions (server-side), never on the client |
+|                      |                                                                                                  |
+| -------------------- | ------------------------------------------------------------------------------------------------ |
+| **Stack**            | React 19 + TypeScript + Vite + Tailwind CSS · Supabase Auth/DB/Edge Functions · Anthropic Claude |
+| **Supabase project** | `aqkymmcfktldheqgckja`                                                                           |
+| **Models**           | Haiku 4.5 (classification and parsing) · Sonnet 4.6 (analysis and bulk extraction)               |
+| **Auth**             | Supabase Auth email/password + @supabase/auth-helpers-react, single user                         |
+| **AI entry point**   | All Claude processing runs in Edge Functions (server-side), never on the client                  |
 
 The user writes in natural language. The frontend sends the text to `/functions/v1/chat`. The Edge Function determines whether it's a transaction record or a query, and acts accordingly.
 
@@ -73,6 +73,7 @@ The user writes in natural language. The frontend sends the text to `/functions/
 ```
 
 **Design decisions:**
+
 - `verify_jwt: false` on all Edge Functions — personal app, no relevant attack surface.
 - The client passes `accounts[]` when calling `chat` to avoid an extra query in the Edge Function when recording a transaction.
 - Claude receives the real account and category IDs in the prompt; it chooses which one to use based on the text.
@@ -82,52 +83,58 @@ The user writes in natural language. The frontend sends the text to `/functions/
 ## 3. Database schema
 
 ### `categories`
-| column | type | description |
-|--------|------|-------------|
-| id | uuid PK | |
-| name | text | e.g. "Comida", "Transporte" |
-| color | text | hex |
-| icon | text | emoji |
+
+| column | type    | description                 |
+| ------ | ------- | --------------------------- |
+| id     | uuid PK |                             |
+| name   | text    | e.g. "Comida", "Transporte" |
+| color  | text    | hex                         |
+| icon   | text    | emoji                       |
 
 8 default categories. Passed to Claude as a list `- Name (id: xxx)` so it assigns the most appropriate one.
 
 ### `accounts`
-| column | type | description |
-|--------|------|-------------|
-| id | uuid PK | |
-| name | text | |
-| type | text | `cash` / `bank` / `digital` |
-| currency | text | e.g. "ARS" |
-| balance | numeric | maintained by trigger |
-| active | bool | |
+
+| column   | type    | description                 |
+| -------- | ------- | --------------------------- |
+| id       | uuid PK |                             |
+| name     | text    |                             |
+| type     | text    | `cash` / `bank` / `digital` |
+| currency | text    | e.g. "ARS"                  |
+| balance  | numeric | maintained by trigger       |
+| active   | bool    |                             |
 
 ### `transactions`
-| column | type | description |
-|--------|------|-------------|
-| id | uuid PK | |
-| account_id | uuid → accounts | |
-| amount | numeric | negative = expense, positive = income |
-| description | text | extracted by Claude from free text |
-| category_id | uuid → categories | assigned by Claude |
-| date | date | extracted from text or current date |
-| source | text | `manual` / `import` / `mercadopago` |
-| external_id | text UNIQUE | MP payment ID — ensures webhook idempotency |
-| created_at | timestamptz | |
+
+| column      | type              | description                                 |
+| ----------- | ----------------- | ------------------------------------------- |
+| id          | uuid PK           |                                             |
+| account_id  | uuid → accounts   |                                             |
+| amount      | numeric           | negative = expense, positive = income       |
+| description | text              | extracted by Claude from free text          |
+| category_id | uuid → categories | assigned by Claude                          |
+| date        | date              | extracted from text or current date         |
+| source      | text              | `manual` / `import` / `mercadopago`         |
+| external_id | text UNIQUE       | MP payment ID — ensures webhook idempotency |
+| created_at  | timestamptz       |                                             |
 
 ### `conversations`
-| column | type | description |
-|--------|------|-------------|
-| id | uuid PK | |
-| role | text | `user` / `assistant` / `summary` |
-| content | text | message text or compressed summary |
-| created_at | timestamptz | |
+
+| column     | type        | description                        |
+| ---------- | ----------- | ---------------------------------- |
+| id         | uuid PK     |                                    |
+| role       | text        | `user` / `assistant` / `summary`   |
+| content    | text        | message text or compressed summary |
+| created_at | timestamptz |                                    |
 
 Used by the `chat` Edge Function to maintain persistent history across sessions. Every 8 messages, Haiku compresses the history into a record with `role = 'summary'`, preventing context from growing indefinitely. History is loaded at the start of each call so Sonnet has session context.
 
 ### Trigger: `trg_update_account_balance`
+
 Fires on `INSERT`, `UPDATE`, and `DELETE` on `transactions`. Recalculates and updates `accounts.balance` automatically. The frontend does not need to manage balances manually.
 
 ### RLS
+
 All 4 tables have RLS enabled with `FOR ALL TO authenticated` policies. Only the authenticated user can read and write their data.
 
 ---
@@ -180,6 +187,7 @@ If the response contains neither word, it falls back to `query` (safe default).
 Uses **Haiku with forced `tool_choice`** (`{ type: "tool", name: "register_transaction" }`). This guarantees Claude always calls the tool and returns structured JSON, never free text.
 
 **Tool `register_transaction`:**
+
 ```typescript
 {
   amount: number,          // negative for expenses
@@ -202,11 +210,11 @@ Agentic loop with **Sonnet**. The function maintains a `messages[]` array and ke
 
 **Available tools:**
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_accounts` | All active accounts with balance | none |
-| `get_transactions` | Filtered transactions | `date_from`, `date_to`, `account_name`, `category_name`, `limit` |
-| `get_spending_by_category` | Grouped by category in a period | `date_from`, `date_to` (required) |
+| Tool                       | Description                      | Parameters                                                       |
+| -------------------------- | -------------------------------- | ---------------------------------------------------------------- |
+| `get_accounts`             | All active accounts with balance | none                                                             |
+| `get_transactions`         | Filtered transactions            | `date_from`, `date_to`, `account_name`, `category_name`, `limit` |
+| `get_spending_by_category` | Grouped by category in a period  | `date_from`, `date_to` (required)                                |
 
 The loop lets Sonnet chain multiple tools. For example: first calls `get_accounts` to see account names, then `get_transactions` filtered by account. Ends when `stop_reason === 'end_turn'` and returns the final text as Markdown.
 
@@ -228,6 +236,7 @@ The version deployed on Supabase persists history in the `conversations` table. 
 Calls **Sonnet with forced `tool_choice`** (`extract_transactions`). The model receives the full bank statement text and extracts all transactions in a single call.
 
 **Tool `extract_transactions`:**
+
 ```typescript
 {
   transactions: [{
@@ -313,8 +322,10 @@ Before querying the MP API, the function checks whether a record with that `exte
 #### Income/expense determination
 
 ```typescript
-const isPayer = String(payment.payer?.id) === MP_USER_ID;  // "384898465"
-const amount = isPayer ? -payment.transaction_amount : payment.transaction_amount;
+const isPayer = String(payment.payer?.id) === MP_USER_ID; // "384898465"
+const amount = isPayer
+  ? -payment.transaction_amount
+  : payment.transaction_amount;
 ```
 
 No text heuristics: the direction of money is determined by comparing the payment's `payer.id` with the `MP_USER_ID` hardcoded as a constant in the function.
@@ -325,9 +336,9 @@ Wallet-to-wallet transfers within MP **do not trigger webhooks**. These movement
 
 #### Required secrets
 
-| Secret | Description |
-|--------|-------------|
-| `MP_ACCESS_TOKEN` | MP production token, to query `/v1/payments/:id` |
+| Secret              | Description                                                     |
+| ------------------- | --------------------------------------------------------------- |
+| `MP_ACCESS_TOKEN`   | MP production token, to query `/v1/payments/:id`                |
 | `MP_WEBHOOK_SECRET` | HMAC validation key provided by MP when configuring the webhook |
 
 ---
@@ -347,20 +358,20 @@ Manual sync of Mercado Pago payments. Supplements the webhook limitation: wallet
 
 ### Model selection by task
 
-| Task | Model | Reason |
-|------|-------|--------|
-| Classify intent (transaction/query) | Haiku | Binary classification, 16 tokens, minimal latency |
-| Parse transaction from free text | Haiku | Simple structured extraction, forced tool_choice |
-| Answer financial queries | Sonnet | Multi-step reasoning, agentic loop |
-| Extract transactions from statement | Sonnet | Long context, variable bank statement formats |
-| Compress conversation history | Haiku | Simple summarization, low cost |
+| Task                                | Model  | Reason                                            |
+| ----------------------------------- | ------ | ------------------------------------------------- |
+| Classify intent (transaction/query) | Haiku  | Binary classification, 16 tokens, minimal latency |
+| Parse transaction from free text    | Haiku  | Simple structured extraction, forced tool_choice  |
+| Answer financial queries            | Sonnet | Multi-step reasoning, agentic loop                |
+| Extract transactions from statement | Sonnet | Long context, variable bank statement formats     |
+| Compress conversation history       | Haiku  | Simple summarization, low cost                    |
 
 ### tool_choice strategies
 
-| Strategy | Used in | Effect |
-|----------|---------|--------|
+| Strategy                        | Used in                               | Effect                                                                                     |
+| ------------------------------- | ------------------------------------- | ------------------------------------------------------------------------------------------ |
 | `{ type: "tool", name: "..." }` | `handleTransaction`, `parseStatement` | Forces a specific tool call. Claude cannot reply in free text. Guarantees structured JSON. |
-| `{ type: "auto" }` (default) | `handleQuery` | Sonnet decides whether and which tools to chain. Enables the agentic loop. |
+| `{ type: "auto" }` (default)    | `handleQuery`                         | Sonnet decides whether and which tools to chain. Enables the agentic loop.                 |
 
 ### Agentic loop in handleQuery
 
@@ -402,6 +413,7 @@ Claude resolves semantic ambiguity ("pagué con la tarjeta" → picks the `bank`
 **Stack:** React 19 + TypeScript + Vite + Tailwind CSS
 
 **Main dependencies:**
+
 - `@supabase/supabase-js` — DB client
 - `@supabase/auth-helpers-react` — auth hooks
 - `marked.js` — Markdown rendering in assistant messages
@@ -433,10 +445,10 @@ src/
 
 ### Screens
 
-| Screen | Description |
-|--------|-------------|
+| Screen    | Description                                                                |
+| --------- | -------------------------------------------------------------------------- |
 | LoginPage | Login with email/password via Supabase Auth + @supabase/auth-helpers-react |
-| Dashboard | Tabbed view with Dashboard/Chat, sidebar with accounts and transactions |
+| Dashboard | Tabbed view with Dashboard/Chat, sidebar with accounts and transactions    |
 
 ### Main components
 
@@ -450,11 +462,11 @@ src/
 
 ### Modals
 
-| Modal | Trigger |
-|-------|---------|
-| AddAccountModal | Button in sidebar |
-| Import statement | "Importar" button in header (pending migration) |
-| Import preview | After parsing the statement, before confirming (pending migration) |
+| Modal            | Trigger                                                            |
+| ---------------- | ------------------------------------------------------------------ |
+| AddAccountModal  | Button in sidebar                                                  |
+| Import statement | "Importar" button in header (pending migration)                    |
+| Import preview   | After parsing the statement, before confirming (pending migration) |
 
 ### Styles
 
@@ -477,28 +489,3 @@ npm run preview  # Preview production build
 - `dangerouslySetInnerHTML` only used with `marked.js` output (controlled)
 
 ---
-
-## 7. Current state and roadmap
-
-### Functional and deployed
-
-- [x] Auth with Supabase
-- [x] Chat with intent classification (Haiku)
-- [x] Natural language transaction recording (Haiku + forced tool use)
-- [x] Financial queries with agentic loop (Sonnet)
-- [x] Persistent conversation history with dynamic summarization (v3)
-- [x] Bank statement import — parse + preview + confirm (Sonnet)
-- [x] Automatic balance trigger in DB
-- [x] RLS on all tables
-- [x] Mercado Pago integration via webhook (HMAC-SHA256, idempotency, automatic income/expense)
-
-### Pending
-
-- [ ] Load chat history on app start (conversations from DB → frontend)
-- [ ] Manual MP sync button (wallet-to-wallet transfers do not generate webhooks)
-- [x] Uploaded to GitHub — https://github.com/luqasmagra/finclaude
-
-### Removed Edge Functions (legacy)
-
-- ~~`parse-transaction`~~ — replaced by the `transaction` path inside `chat`
-- ~~`query-finances`~~ — replaced by the `query` path inside `chat`
