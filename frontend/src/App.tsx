@@ -220,11 +220,6 @@ function AppContent() {
               setShowAddAccount(true);
               setSidebarOpen(false);
             }}
-            currentTab={currentTab}
-            onTabChange={(tab) => {
-              setCurrentTab(tab);
-              setSidebarOpen(false);
-            }}
           />
         </div>
 

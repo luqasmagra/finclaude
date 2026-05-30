@@ -8,11 +8,9 @@ import { ConfirmDialog } from '../UI/ConfirmDialog';
 
 interface SidebarProps {
   onAddAccount: () => void;
-  currentTab: 'dashboard' | 'chat' | 'transactions';
-  onTabChange: (tab: 'dashboard' | 'chat' | 'transactions') => void;
 }
 
-export function Sidebar({ onAddAccount, currentTab: _currentTab, onTabChange: _onTabChange }: SidebarProps) {
+export function Sidebar({ onAddAccount }: SidebarProps) {
   const { accounts, loading: accountsLoading, getTotalBalance, deleteAccount } = useAccountsContext();
   const { transactions, loading: txLoading } = useTransactionsContext();
   const { addToast } = useToast();
