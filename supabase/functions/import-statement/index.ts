@@ -169,6 +169,22 @@ Deno.serve(async (req) => {
       );
     }
 
+    const { data: accountExists } = await supabase
+      .from('accounts')
+      .select('id')
+      .eq('id', account_id)
+      .maybeSingle();
+
+    if (!accountExists) {
+      return new Response(
+        JSON.stringify({ error: 'Cuenta no encontrada' }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
     const transactions = await parseStatement(text, account_id);
 
     // Calculate preview
