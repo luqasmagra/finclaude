@@ -12,7 +12,7 @@ const MP_TOKEN = Deno.env.get('MP_ACCESS_TOKEN')!;
 const MP_USER_ID = '384898465';
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('FRONTEND_URL') ?? '*',
   'Access-Control-Allow-Headers':
     'authorization, content-type, apikey, x-client-info',
 };

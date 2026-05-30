@@ -8,7 +8,7 @@ const supabase = createClient(
 );
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': Deno.env.get('FRONTEND_URL') ?? '*',
   'Access-Control-Allow-Headers':
     'authorization, content-type, apikey, x-client-info',
 };
