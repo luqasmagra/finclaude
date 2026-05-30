@@ -466,7 +466,7 @@ src/
 
 **Chat:** A single `fetch()` to `/functions/v1/chat` per message. The frontend passes `accounts[]` in the body (already available from the sidebar). Assistant responses are rendered with `marked.js`.
 
-**AddExpenseModal:** Manual expense form opened from the header or mobile menu. Inserts a negative `transactions.amount` with `source: "manual"`, then refreshes accounts and transactions.
+**AddExpenseModal:** Manual expense form opened from the header or mobile menu. Uses a custom in-modal calendar for the date field, inserts a negative `transactions.amount` with `source: "manual"`, then refreshes accounts and transactions.
 
 ### Modals
 
@@ -481,6 +481,7 @@ src/
 - **Tailwind CSS** for utility styles
 - Custom CSS in `index.css` for color variables and global styles
 - Custom CSS variables for dark theme: `--bg`, `--surface`, `--accent`, `--green`, `--red`, etc.
+- Number inputs use global CSS to hide native browser spinner controls.
 
 ### Dev workflow
 
