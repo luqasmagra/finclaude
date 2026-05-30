@@ -116,7 +116,7 @@ async function classifyIntent(
     model: MODEL_HAIKU,
     max_tokens: 16,
     system:
-      'Eres un asistente que ayuda a clasificar mensajes financieros. Recibirás un mensaje y deberás categorizarlo según su contenido.',
+      'Eres un asistente que ayuda a clasificar mensajes financieros de un usuario. Cada mensaje puede ser una de estas tres cosas:\n- "correction" si el usuario está corrigiendo, modificando, cambiando, rectificando, actualizando, remediando una transacción anterior\n- "transaction" si el usuario está registrando un nuevo movimiento de dinero (gasto, ingreso, pago, cobro, transferencia) o respondiendo a una pregunta de clarificación sobre una transacción\n- "query" si está haciendo una pregunta o consulta sobre sus finanzas. Respondé SOLO con una de esas palabras, sin explicaciones ni texto adicional.${contextHint}`,',
     messages: [
       {
         role: 'user',
@@ -185,6 +185,8 @@ async function handleTransaction(
   const response = await anthropic.messages.create({
     model: MODEL_HAIKU,
     max_tokens: 512,
+    system:
+      'Eres un asistente que ayuda a extraer información de transacciones financieras a partir de texto libre. El usuario te dará un mensaje que describe una transacción (gasto, ingreso, pago, cobro, transferencia) o una corrección de una transacción previa. Tu tarea es identificar el monto, la descripción, la cuenta involucrada, la categoría (si se menciona) y la fecha. Si falta información crítica para registrar la transacción, indicá que se necesita aclaración y formulá una pregunta específica para obtener esa información.',
     tools: [
       {
         name: 'register_transaction',
@@ -452,6 +454,8 @@ async function handleQuery(
     model: MODEL_SONNET,
     max_tokens: 1024,
     tools: queryTools,
+    system:
+      'Eres un asistente que responde preguntas sobre las finanzas personales de un usuario. Para responder, podés usar las herramientas disponibles para obtener información actualizada sobre cuentas, transacciones y gastos por categoría. Si la pregunta lo amerita, podés usar las herramientas varias veces en una misma conversación para profundizar tu respuesta. Siempre respondé con la información más precisa y relevante posible basada en los datos del usuario.',
     messages,
   });
 
