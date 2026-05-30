@@ -13,7 +13,7 @@ const corsHeaders = {
     'authorization, content-type, apikey, x-client-info',
 };
 
-// ─── PARSE: extrae transacciones del texto con Sonnet ────────────────────────
+// ─── PARSE: extract transactions from text with Sonnet ───────────────────────
 async function parseStatement(text: string, account_id: string) {
   const { data: categories } = await supabase
     .from('categories')
@@ -101,7 +101,7 @@ ${text}`,
   return transactions.map((tx) => ({ ...tx, account_id }));
 }
 
-// ─── CONFIRM: inserta las transacciones en bulk ───────────────────────────────
+// ─── CONFIRM: bulk insert transactions ───────────────────────────────────────
 async function confirmImport(
   transactions: {
     amount: number;
@@ -136,7 +136,7 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json();
 
-    // Modo confirm: recibe transacciones ya parseadas y las inserta
+    // Confirm mode: receives already-parsed transactions and inserts them
     if (body.confirm === true) {
       const count = await confirmImport(body.transactions);
       return new Response(JSON.stringify({ imported: count }), {
@@ -144,7 +144,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Modo parse: extrae transacciones del texto
+    // Parse mode: extract transactions from text
     const { text, account_id } = body;
     if (!text || !account_id) {
       return new Response(
@@ -171,7 +171,7 @@ Deno.serve(async (req) => {
 
     const transactions = await parseStatement(text, account_id);
 
-    // Calcular preview
+    // Calculate preview
     const amounts = transactions.map((t) => t.amount);
     const dates = transactions.map((t) => t.date).sort();
     const totalExpenses = amounts
