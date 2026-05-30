@@ -24,7 +24,7 @@ Project ref: aqkymmcfktldheqgckja (same project as scraper-ar)
 ## Architecture
 
 - **Frontend:** React 19 + TypeScript + Vite + Tailwind CSS
-- **Auth:** Supabase Auth (email/password) + @supabase/auth-helpers-react
+- **Auth:** Supabase Auth (email/password) via @supabase/supabase-js
 - **Backend:** Supabase Edge Functions (TypeScript/Deno) — Claude API calls from the server
 - **DB:** Supabase PostgreSQL (tables: accounts, transactions, categories, conversations)
 - **Claude:** Haiku for parsing/categorization, Sonnet for analysis and reports
@@ -32,7 +32,7 @@ Project ref: aqkymmcfktldheqgckja (same project as scraper-ar)
 ## Main flow
 
 1. User writes in natural language or uploads a PDF
-2. Frontend calls an Edge Function
+2. Frontend calls an Edge Function, or writes directly to Supabase for manual UI actions
 3. Edge Function calls Claude with the required tools (tool use)
 4. Claude executes the action (insert transaction, query DB, generate report)
 5. Result returns to the frontend
@@ -41,7 +41,6 @@ Project ref: aqkymmcfktldheqgckja (same project as scraper-ar)
 
 ```
 finanzas/
-├── AGENTS.md                   <- instructions for OpenCode
 ├── CLAUDE.md                   <- this file
 ├── README.md                   <- full technical documentation
 ├── index.html                  <- legacy frontend (vanilla JS, unused)
@@ -50,7 +49,8 @@ finanzas/
 │   │   ├── App.tsx            ← main component with auth flow
 │   │   ├── main.tsx           ← entry point
 │   │   ├── pages/             ← LoginPage
-│   │   ├── components/        ← Dashboard, Chat, Accounts, Layout
+│   │   ├── components/        ← Dashboard, Chat, Accounts, Transactions, Import, Layout, UI
+│   │   ├── context/           ← accounts, transactions, toast providers
 │   │   ├── hooks/             ← useAuth (Supabase Auth)
 │   │   ├── lib/               ← supabase client
 │   │   └── utils/             ← helpers
@@ -66,16 +66,18 @@ finanzas/
 │       └── mp-sync/           ← manual MP sync (wallet-to-wallet transfers)
 └── .claude/
     ├── agents/
+    │   ├── accessibility.md
     │   ├── analyst.md
-    │   ├── categorizer.md
     │   ├── model-updater.md
-    │   ├── parser.md
-    │   ├── reporter.md
     │   └── security-reviewer.md
     └── skills/
         ├── check-logs/
         ├── db-query/
-        └── deploy-functions/
+        ├── deploy-functions/
+        ├── frontend-design/
+        ├── prompt-engineer/
+        ├── vercel-react-best-practices/
+        └── web-design-guidelines/
 ```
 
 ---
@@ -84,10 +86,8 @@ finanzas/
 
 | Agent | Trigger | Function |
 |-------|---------|----------|
-| `parser` | "agregar", "gasté", "cobré", "pagué" | Extracts transaction from free text and inserts into DB |
+| `accessibility` | "a11y", "accesibilidad", modals/forms/dialogs | Reviews WCAG, keyboard navigation, ARIA, focus, and contrast in the React frontend |
 | `analyst` | "cuánto", "gasté", "balance", "resumen" | Queries DB and answers questions in natural language |
-| `categorizer` | uncategorized transaction | Automatically assigns category based on description |
-| `reporter` | "reporte", "informe", "mes" | Generates monthly report with insights |
 | `model-updater` | editing Edge Functions | Audits model IDs in supabase/functions/ and reports stale ones |
 | `security-reviewer` | reviewing mp-webhook, chat, RLS | Reviews security: HMAC, JWT, RLS, SQL injection, XSS |
 
@@ -105,7 +105,7 @@ finanzas/
 
 - Frontend: React 19 + TypeScript + Vite + Tailwind CSS
 - Backend: Supabase Edge Functions (Deno/TypeScript)
-- Auth: Supabase Auth (email/password) + @supabase/auth-helpers-react
+- Auth: Supabase Auth (email/password) via @supabase/supabase-js
 - DB: Supabase PostgreSQL
 - AI: Anthropic Claude (Haiku for simple tasks, Sonnet for analysis)
 - Dev tools: Vite dev server, TypeScript 6, PostCSS

@@ -12,7 +12,7 @@ Reviews and improves accessibility in the React + Tailwind CSS frontend followin
 - React 19 with JSX — prefer semantic HTML + native elements over ARIA roles
 - Tailwind CSS — use utility classes for focus styles and touch targets
 - Lucide React icons — always pair with `aria-hidden="true"` and a label on the parent
-- Modals: `AddAccountModal`, `ImportStatementModal`, `ConfirmDialog` — check focus trap
+- Modals: `AddAccountModal`, `AddExpenseModal`, `ImportStatementModal`, `ConfirmDialog` — check focus trap
 
 ## Priority rules for this project
 

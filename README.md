@@ -27,7 +27,7 @@
 | **Stack**            | React 19 + TypeScript + Vite + Tailwind CSS · Supabase Auth/DB/Edge Functions · Anthropic Claude |
 | **Supabase project** | `aqkymmcfktldheqgckja`                                                                           |
 | **Models**           | Haiku 4.5 (classification and parsing) · Sonnet 4.6 (analysis and bulk extraction)               |
-| **Auth**             | Supabase Auth email/password + @supabase/auth-helpers-react, single user                         |
+| **Auth**             | Supabase Auth email/password via `@supabase/supabase-js`, single user                            |
 | **AI entry point**   | All Claude processing runs in Edge Functions (server-side), never on the client                  |
 
 The user writes in natural language. The frontend sends the text to `/functions/v1/chat`. The Edge Function determines whether it's a transaction record or a query, and acts accordingly.
@@ -42,11 +42,11 @@ The user writes in natural language. The frontend sends the text to `/functions/
 │                                                             │
 │  src/                                                       │
 │  ├── App.tsx (auth flow)                                    │
-│  ├── components/ (Dashboard, Chat, Accounts, Layout)       │
+│  ├── components/ (Dashboard, Chat, Accounts, Layout, etc.)  │
 │  ├── hooks/ (useAuth)                                       │
 │  └── lib/ (supabase client)                                 │
 │                                                             │
-│  @supabase/auth-helpers-react ──► Auth (session token)      │
+│  @supabase/supabase-js ────────► Auth (session token)       │
 │  fetch() ──────────────────────► /functions/v1/chat         │
 │  fetch() ──────────────────────► /functions/v1/import-st... │
 └─────────────────────────────────────────────────────────────┘
@@ -415,12 +415,10 @@ Claude resolves semantic ambiguity ("pagué con la tarjeta" → picks the `bank`
 **Main dependencies:**
 
 - `@supabase/supabase-js` — DB client
-- `@supabase/auth-helpers-react` — auth hooks
 - `marked.js` — Markdown rendering in assistant messages
-- `react-router-dom` — routing
 - `recharts` — charts
 - `lucide-react` — icons
-- `framer-motion` — animations
+- `dompurify` — sanitize rendered Markdown
 - `date-fns` — date handling
 
 ### Structure
@@ -435,7 +433,11 @@ src/
 │   ├── Dashboard/       ← dashboard view
 │   ├── Chat/            ← chat interface
 │   ├── Accounts/        ← account components and modal
+│   ├── Transactions/    ← transaction list and manual expense modal
+│   ├── Import/          ← statement import modal
+│   ├── UI/              ← shared UI components
 │   └── Layout/          ← Header, Sidebar, etc.
+├── context/             ← accounts, transactions, and toast providers
 ├── hooks/
 │   └── useAuth.tsx      ← authentication hook with Supabase
 ├── lib/
@@ -445,28 +447,34 @@ src/
 
 ### Screens
 
-| Screen    | Description                                                                |
-| --------- | -------------------------------------------------------------------------- |
-| LoginPage | Login with email/password via Supabase Auth + @supabase/auth-helpers-react |
-| Dashboard | Tabbed view with Dashboard/Chat, sidebar with accounts and transactions    |
+| Screen       | Description                                                              |
+| ------------ | ------------------------------------------------------------------------ |
+| LoginPage    | Login with email/password via Supabase Auth                              |
+| Dashboard    | Account summary, recent transactions, and charts                         |
+| Chat         | Natural-language assistant for recording and querying movements          |
+| Transactions | Transaction history view, loaded lazily when the tab is active           |
 
 ### Main components
 
-**App.tsx:** Wraps the app in `<AuthProvider>` and manages the auth flow. Shows `<LoginPage>` if there is no user, or `<Header>` + `<Sidebar>` + active view (Dashboard/Chat) if there is a session.
+**App.tsx:** Wraps the app in `<AuthProvider>`, `<ToastProvider>`, `<AccountsProvider>`, and `<TransactionsProvider>`.
 
-**useAuth hook:** Exposes `user`, `loading`, and `signOut()` using `@supabase/auth-helpers-react`.
+**AppLayout:** Manages the auth gate, header/sidebar layout, active view, Mercado Pago sync, and lazy-loaded modals/pages. Shows `<LoginPage>` if there is no user, or `<Header>` + `<Sidebar>` + active view when there is a session.
+
+**useAuth hook:** Exposes `user`, `loading`, `signIn()`, `signUp()`, and `signOut()` using Supabase Auth from `@supabase/supabase-js`.
 
 **Sidebar:** Active accounts with balance (updated in real time after a transaction; negative balance in red), categories with color and icon, last 5 transactions.
 
 **Chat:** A single `fetch()` to `/functions/v1/chat` per message. The frontend passes `accounts[]` in the body (already available from the sidebar). Assistant responses are rendered with `marked.js`.
 
+**AddExpenseModal:** Manual expense form opened from the header or mobile menu. Inserts a negative `transactions.amount` with `source: "manual"`, then refreshes accounts and transactions.
+
 ### Modals
 
-| Modal            | Trigger                                                            |
-| ---------------- | ------------------------------------------------------------------ |
-| AddAccountModal  | Button in sidebar                                                  |
-| Import statement | "Importar" button in header (pending migration)                    |
-| Import preview   | After parsing the statement, before confirming (pending migration) |
+| Modal                 | Trigger                                                     |
+| --------------------- | ----------------------------------------------------------- |
+| AddAccountModal       | Button in sidebar                                           |
+| AddExpenseModal       | "Agregar gasto" button in header or mobile menu             |
+| ImportStatementModal  | "Importar" button in header or mobile menu                  |
 
 ### Styles
 
