@@ -75,13 +75,17 @@ async function compressHistory(data: { role: string; content: string }[]) {
     model: MODEL_HAIKU,
     max_tokens: 512,
     system:
-      'Eres un asistente que ayuda a resumir conversaciones financieras entre un usuario y un asistente. Recibirás una conversación con mensajes de ambos roles. Tu tarea es generar un resumen conciso en español que capture los puntos clave, incluyendo transacciones registradas, preguntas respondidas y montos relevantes. El resumen debe ser breve (3-4 oraciones) pero informativo.',
+      'Resumís conversaciones financieras en español. ' +
+      'Generás un resumen de máximo 4 oraciones preservando esta información en orden de prioridad:\n' +
+      '1. Transacciones registradas: monto EXACTO en pesos, descripción, cuenta y fecha\n' +
+      '2. Correcciones realizadas a transacciones previas\n' +
+      '3. Preguntas respondidas con datos numéricos concretos\n' +
+      '4. Aclaraciones pendientes o sin responder\n\n' +
+      'Omití saludos, confirmaciones genéricas y mensajes sin contenido financiero.',
     messages: [
       {
         role: 'user',
-        content: `Resumí esta conversación financiera en 3-4 oraciones en español. Incluí los datos clave: transacciones registradas, preguntas respondidas, montos relevantes.
-
-${conversationText}`,
+        content: `Resumí esta conversación:\n\n${conversationText}`,
       },
     ],
   });
@@ -109,23 +113,32 @@ async function classifyIntent(
     .find((m) => m.role === 'assistant');
 
   const contextHint = lastAssistantMsg
-    ? `\nContexto: la última respuesta del asistente fue: "${lastAssistantMsg.content.substring(0, 200)}"`
+    ? `\nContexto — último mensaje del asistente: "${lastAssistantMsg.content.substring(0, 150)}"`
     : '';
 
   const response = await anthropic.messages.create({
     model: MODEL_HAIKU,
     max_tokens: 16,
     system:
-      'Eres un asistente que ayuda a clasificar mensajes financieros de un usuario. Cada mensaje puede ser una de estas tres cosas:\n- "correction" si el usuario está corrigiendo, modificando, cambiando, rectificando, actualizando, remediando una transacción anterior\n- "transaction" si el usuario está registrando un nuevo movimiento de dinero (gasto, ingreso, pago, cobro, transferencia) o respondiendo a una pregunta de clarificación sobre una transacción\n- "query" si está haciendo una pregunta o consulta sobre sus finanzas. Respondé SOLO con una de esas palabras, sin explicaciones ni texto adicional.${contextHint}`,',
+      'Clasificás mensajes financieros en español en una de tres categorías. ' +
+      'Respondé ÚNICAMENTE con la palabra, sin puntuación ni texto adicional.\n\n' +
+      'Categorías:\n' +
+      '- "transaction": el usuario registra un movimiento de dinero (gasto, pago, cobro, ingreso, transferencia) ' +
+      'o responde a una pregunta de aclaración sobre una transacción\n' +
+      '- "correction": el usuario modifica, corrige o actualiza una transacción ya registrada\n' +
+      '- "query": el usuario hace una pregunta o consulta sobre sus finanzas\n\n' +
+      'Ejemplos:\n' +
+      'Mensaje: "gasté 800 en el super" → transaction\n' +
+      'Mensaje: "me pagaron el sueldo" → transaction\n' +
+      'Mensaje: "no, eran 1200 pesos" → correction\n' +
+      'Mensaje: "cambiá el monto a 800" → correction\n' +
+      'Mensaje: "cuánto gasté esta semana?" → query\n' +
+      'Mensaje: "cuál es mi saldo en Mercado Pago?" → query' +
+      contextHint,
     messages: [
       {
         role: 'user',
-        content: `Clasificá este mensaje financiero. Respondé SOLO con una palabra:
-- "correction" si el usuario está corrigiendo, modificando, cambiando, rectificando, actualizando, remediando, исправля una transacción anterior
-- "transaction" si el usuario está registrando un nuevo movimiento de dinero (gasto, ingreso, pago, cobro, transferencia) o respondiendo a una pregunta de clarificación sobre una transacción
-- "query" si está haciendo una pregunta o consulta sobre sus finanzas${contextHint}
-
-Mensaje: "${text}"`,
+        content: `Mensaje: "${text}"\nCategoría:`,
       },
     ],
   });
@@ -184,9 +197,15 @@ async function handleTransaction(
 
   const response = await anthropic.messages.create({
     model: MODEL_HAIKU,
-    max_tokens: 512,
+    max_tokens: 256,
     system:
-      'Eres un asistente que ayuda a extraer información de transacciones financieras a partir de texto libre. El usuario te dará un mensaje que describe una transacción (gasto, ingreso, pago, cobro, transferencia) o una corrección de una transacción previa. Tu tarea es identificar el monto, la descripción, la cuenta involucrada, la categoría (si se menciona) y la fecha. Si falta información crítica para registrar la transacción, indicá que se necesita aclaración y formulá una pregunta específica para obtener esa información.',
+      'Extraés datos de transacciones financieras en pesos argentinos (ARS) y los registrás ' +
+      'llamando a la herramienta register_transaction. Nunca respondés con texto libre.\n\n' +
+      'Reglas:\n' +
+      '- Monto: NEGATIVO para gastos, pagos, compras y egresos. POSITIVO para ingresos, cobros y depósitos.\n' +
+      '- account_id: ID de la cuenta mencionada en el texto. Si no se menciona ninguna, dejá el campo como string vacío ("").\n' +
+      '- date: formato YYYY-MM-DD. Si no se especifica, usá la fecha de hoy.\n' +
+      '- needs_clarification: true SOLO si falta el monto o no se puede inferir la descripción.',
     tools: [
       {
         name: 'register_transaction',
@@ -211,7 +230,7 @@ async function handleTransaction(
             account_id: {
               type: 'string',
               description:
-                'ID de la cuenta mencionada en el texto. Si no se menciona, usar la primera',
+                'ID de la cuenta mencionada en el texto. Dejá vacío ("") si no se menciona ninguna.',
             },
             date: {
               type: 'string',
@@ -305,6 +324,18 @@ async function handleTransaction(
 }
 
 // ─── STEP 2b: Query with Sonnet agentic loop ─────────────────────────────────
+const QUERY_SYSTEM =
+  'Sos un asistente financiero personal que responde preguntas sobre las finanzas del usuario en pesos argentinos.\n\n' +
+  'Cuándo usar cada herramienta:\n' +
+  '- get_accounts: saldos, balances, listado de cuentas\n' +
+  '- get_spending_by_category: totales por categoría o comparaciones ("cuánto gasté en X", "en qué gasté más")\n' +
+  '- get_transactions: movimientos específicos, últimas compras, gastos de un comercio concreto\n\n' +
+  'Podés encadenar herramientas si la pregunta lo requiere.\n\n' +
+  'Formato de respuesta:\n' +
+  '- Montos siempre como "$X.XXX" (ej: "$15.000", "$800")\n' +
+  '- Si una herramienta devuelve resultados vacíos, decilo: "No encontré transacciones de [X] en ese período"\n' +
+  '- Usá listas o negrita solo cuando hay múltiples items. Respuesta directa para preguntas directas.';
+
 const queryTools: Anthropic.Tool[] = [
   {
     name: 'get_accounts',
@@ -452,10 +483,9 @@ async function handleQuery(
 
   let response = await anthropic.messages.create({
     model: MODEL_SONNET,
-    max_tokens: 1024,
+    max_tokens: 1536,
+    system: QUERY_SYSTEM,
     tools: queryTools,
-    system:
-      'Eres un asistente que responde preguntas sobre las finanzas personales de un usuario. Para responder, podés usar las herramientas disponibles para obtener información actualizada sobre cuentas, transacciones y gastos por categoría. Si la pregunta lo amerita, podés usar las herramientas varias veces en una misma conversación para profundizar tu respuesta. Siempre respondé con la información más precisa y relevante posible basada en los datos del usuario.',
     messages,
   });
 
@@ -481,7 +511,8 @@ async function handleQuery(
     messages.push({ role: 'user', content: toolResults });
     response = await anthropic.messages.create({
       model: MODEL_SONNET,
-      max_tokens: 1024,
+      max_tokens: 1536,
+      system: QUERY_SYSTEM,
       tools: queryTools,
       messages,
     });
