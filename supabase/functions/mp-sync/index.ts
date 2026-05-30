@@ -155,7 +155,7 @@ Deno.serve(async (req) => {
   const { data: account } = await supabase
     .from('accounts')
     .select('id')
-    .eq('type', 'digital')
+    .ilike('name', '%mercado pago%')
     .maybeSingle();
 
   if (!account) {
