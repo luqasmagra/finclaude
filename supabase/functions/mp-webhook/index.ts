@@ -18,7 +18,7 @@ function timingSafeEqual(a: string, b: string): boolean {
   return result === 0;
 }
 
-// Valida la firma HMAC-SHA256 que MP envía en x-signature
+// Validates the HMAC-SHA256 signature MP sends in x-signature
 async function validateSignature(
   req: Request,
   paymentId: string,
@@ -76,13 +76,13 @@ Deno.serve(async (req) => {
 
   const paymentId = String(body.data.id);
 
-  // Validar firma de MP
+  // Validate MP signature
   const valid = await validateSignature(req, paymentId);
   if (!valid) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  // Idempotencia: no procesar el mismo pago dos veces
+  // Idempotency: do not process the same payment twice
   const { data: existing } = await supabase
     .from('transactions')
     .select('id')
@@ -93,7 +93,7 @@ Deno.serve(async (req) => {
     return new Response('Already processed', { status: 200 });
   }
 
-  // Obtener detalles del pago desde la API de MP
+  // Fetch payment details from the MP API
   const mpRes = await fetch(
     `https://api.mercadopago.com/v1/payments/${paymentId}`,
     {
@@ -107,12 +107,12 @@ Deno.serve(async (req) => {
 
   const payment = await mpRes.json();
 
-  // Solo registrar pagos aprobados
+  // Only record approved payments
   if (payment.status !== 'approved') {
     return new Response('OK', { status: 200 });
   }
 
-  // Si somos el pagador → egreso (negativo). Si somos el cobrador → ingreso (positivo).
+  // If we are the payer → expense (negative). If we are the collector → income (positive).
   const isPayer = String(payment.payer?.id) === MP_USER_ID;
   const amount = isPayer
     ? -payment.transaction_amount
@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
     payment.description ||
     (isPayer ? `Pago MP #${paymentId}` : `Cobro MP #${paymentId}`);
 
-  // Buscar la cuenta de Mercado Pago en la DB
+  // Find the Mercado Pago account in the DB
   const { data: account } = await supabase
     .from('accounts')
     .select('id')
