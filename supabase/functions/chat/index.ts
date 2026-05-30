@@ -18,7 +18,7 @@ const COMPRESS_THRESHOLD = 8;
 const MODEL_HAIKU = 'claude-haiku-4-5-20251001';
 const MODEL_SONNET = 'claude-sonnet-4-6';
 
-// ─── CONVERSATION HISTORY HELPERS ────────────────────────────────────────────
+// ─── CONVERSATION HISTORY HELPERS ───────────────────────────────────────────
 
 async function loadConversationHistory(): Promise<{
   summary: string | null;
@@ -95,7 +95,7 @@ ${conversationText}`,
     .insert({ role: 'summary', content: summary });
 }
 
-// ─── STEP 1: Clasificar intent con Haiku ─────────────────────────────────────
+// ─── STEP 1: Classify intent with Haiku ──────────────────────────────────────
 async function classifyIntent(
   text: string,
   history: {
@@ -138,7 +138,7 @@ Mensaje: "${text}"`,
   return result.includes('transaction') ? 'transaction' : 'query';
 }
 
-// ─── STEP 2a: Parsear y registrar transacción ─────────────────────────────────
+// ─── STEP 2a: Parse and record transaction ───────────────────────────────────
 async function handleTransaction(
   text: string,
   accounts: { id: string; name: string; type: string }[],
@@ -302,7 +302,7 @@ async function handleTransaction(
   };
 }
 
-// ─── STEP 2b: Consulta con loop agéntico usando Sonnet ────────────────────────
+// ─── STEP 2b: Query with Sonnet agentic loop ─────────────────────────────────
 const queryTools: Anthropic.Tool[] = [
   {
     name: 'get_accounts',
@@ -498,7 +498,7 @@ Deno.serve(async (req) => {
   try {
     const { text, accounts } = await req.json();
     if (!text) {
-      return new Response(JSON.stringify({ error: 'text es requerido' }), {
+      return new Response(JSON.stringify({ error: 'text is required' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
