@@ -103,7 +103,7 @@ export function AppLayout() {
 
       <Header
         currentTab={currentTab}
-        onTabChange={(tab) => { setCurrentTab(tab); setMobileMenuOpen(false); }}
+        onTabChange={(tab) => { setCurrentTab(tab); setMobileMenuOpen(false); setSidebarOpen(false); }}
         onImport={() => setShowImport(true)}
         onSyncMP={handleSyncMP}
         syncingMP={syncingMP}

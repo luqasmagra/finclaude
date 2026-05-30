@@ -73,7 +73,7 @@ export function DashboardCharts({
       </div>
 
       <section
-        className='card p-6 mt-6 animate-fade-in-up stagger-6'
+        className='card p-6 mt-6 animate-fade-in-up stagger-7'
         aria-labelledby='monthly-chart-heading'
         style={{ borderColor: 'var(--border-subtle)' }}
       >
