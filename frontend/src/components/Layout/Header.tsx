@@ -1,5 +1,5 @@
 
-import { LogOut, Upload, LayoutDashboard, MessageSquare, Menu, X, RefreshCw } from 'lucide-react';
+import { LogOut, Upload, LayoutDashboard, MessageSquare, Menu, X, RefreshCw, Plus } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../context/ToastContext';
 
@@ -7,6 +7,7 @@ interface HeaderProps {
   currentTab: 'dashboard' | 'chat' | 'transactions';
   onTabChange: (tab: 'dashboard' | 'chat' | 'transactions') => void;
   onImport: () => void;
+  onAddExpense: () => void;
   onSyncMP: () => void;
   syncingMP?: boolean;
   onToggleSidebar?: () => void;
@@ -15,7 +16,7 @@ interface HeaderProps {
   onMobileMenuToggle?: () => void;
 }
 
-export function Header({ currentTab, onTabChange, onImport, onSyncMP, syncingMP, onToggleSidebar, sidebarOpen, mobileMenuOpen, onMobileMenuToggle }: HeaderProps) {
+export function Header({ currentTab, onTabChange, onImport, onAddExpense, onSyncMP, syncingMP, onToggleSidebar, sidebarOpen, mobileMenuOpen, onMobileMenuToggle }: HeaderProps) {
   const { user, signOut } = useAuth();
   const { addToast } = useToast();
 
@@ -103,6 +104,14 @@ export function Header({ currentTab, onTabChange, onImport, onSyncMP, syncingMP,
 
       {/* Desktop actions */}
       <div className="hidden lg:flex items-center gap-3">
+        <button
+          onClick={onAddExpense}
+          className="btn-accent px-4 py-2.5 text-sm flex items-center gap-2"
+        >
+          <Plus size={16} className="relative z-10" aria-hidden="true" />
+          <span>Agregar gasto</span>
+        </button>
+
         <button
           onClick={onSyncMP}
           disabled={syncingMP}

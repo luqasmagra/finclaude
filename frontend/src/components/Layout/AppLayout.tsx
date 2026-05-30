@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { useAccountsContext } from '../../context/AccountsContext';
 import { useTransactionsContext } from '../../context/TransactionsContext';
@@ -6,13 +6,23 @@ import { useToast } from '../../context/ToastContext';
 import { LoginPage } from '../../pages/LoginPage';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
-import { DashboardPage } from '../Dashboard/DashboardPage';
-import { TransactionsPage } from '../Transactions/TransactionsPage';
-import { ChatPage } from '../Chat/ChatPage';
-import { AddAccountModal } from '../Accounts/AddAccountModal';
-import { ImportStatementModal } from '../Import/ImportStatementModal';
 import { supabase } from '../../lib/supabase';
-import { LayoutDashboard, MessageSquare, Upload, LogOut, RefreshCw } from 'lucide-react';
+import { LayoutDashboard, MessageSquare, Upload, LogOut, RefreshCw, Plus } from 'lucide-react';
+
+const DashboardPage = lazy(() => import('../Dashboard/DashboardPage').then((module) => ({ default: module.DashboardPage })));
+const TransactionsPage = lazy(() => import('../Transactions/TransactionsPage').then((module) => ({ default: module.TransactionsPage })));
+const ChatPage = lazy(() => import('../Chat/ChatPage').then((module) => ({ default: module.ChatPage })));
+const AddAccountModal = lazy(() => import('../Accounts/AddAccountModal').then((module) => ({ default: module.AddAccountModal })));
+const ImportStatementModal = lazy(() => import('../Import/ImportStatementModal').then((module) => ({ default: module.ImportStatementModal })));
+const AddExpenseModal = lazy(() => import('../Transactions/AddExpenseModal').then((module) => ({ default: module.AddExpenseModal })));
+
+function RouteFallback() {
+  return (
+    <div className="h-full flex items-center justify-center">
+      <div className="spinner" aria-hidden="true" />
+    </div>
+  );
+}
 
 export function AppLayout() {
   const { user, loading, signOut } = useAuth();
@@ -21,6 +31,7 @@ export function AppLayout() {
   const { addToast } = useToast();
   const [currentTab, setCurrentTab] = useState<'dashboard' | 'chat' | 'transactions'>('dashboard');
   const [showAddAccount, setShowAddAccount] = useState(false);
+  const [showAddExpense, setShowAddExpense] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [syncingMP, setSyncingMP] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -105,6 +116,7 @@ export function AppLayout() {
         currentTab={currentTab}
         onTabChange={(tab) => { setCurrentTab(tab); setMobileMenuOpen(false); setSidebarOpen(false); }}
         onImport={() => setShowImport(true)}
+        onAddExpense={() => setShowAddExpense(true)}
         onSyncMP={handleSyncMP}
         syncingMP={syncingMP}
         onToggleSidebar={toggleSidebar}
@@ -160,6 +172,17 @@ export function AppLayout() {
               {label}
             </button>
           ))}
+
+          <div className="h-px my-2" style={{ background: 'var(--border-subtle)' }} />
+
+          <button
+            onClick={() => { setShowAddExpense(true); setMobileMenuOpen(false); }}
+            className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all"
+            style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)', color: '#09090b' }}
+          >
+            <Plus size={16} aria-hidden="true" />
+            Agregar gasto
+          </button>
 
           <div className="h-px my-2" style={{ background: 'var(--border-subtle)' }} />
 
@@ -222,24 +245,40 @@ export function AppLayout() {
         </div>
 
         <main className="flex-1 overflow-hidden relative">
-          {currentTab === 'dashboard' && <DashboardPage />}
-          {currentTab === 'transactions' && <TransactionsPage />}
-          {currentTab === 'chat' && (
-            <ChatPage onTransactionCreated={handleTransactionCreated} />
-          )}
+          <Suspense fallback={<RouteFallback />}>
+            {currentTab === 'dashboard' && <DashboardPage />}
+            {currentTab === 'transactions' && <TransactionsPage />}
+            {currentTab === 'chat' && (
+              <ChatPage onTransactionCreated={handleTransactionCreated} />
+            )}
+          </Suspense>
         </main>
       </div>
 
-      <AddAccountModal
-        isOpen={showAddAccount}
-        onClose={() => setShowAddAccount(false)}
-      />
+      <Suspense fallback={null}>
+        {showAddAccount && (
+          <AddAccountModal
+            isOpen={showAddAccount}
+            onClose={() => setShowAddAccount(false)}
+          />
+        )}
 
-      <ImportStatementModal
-        isOpen={showImport}
-        onClose={() => setShowImport(false)}
-        onImportComplete={handleTransactionCreated}
-      />
+        {showAddExpense && (
+          <AddExpenseModal
+            isOpen={showAddExpense}
+            onClose={() => setShowAddExpense(false)}
+            onExpenseCreated={handleTransactionCreated}
+          />
+        )}
+
+        {showImport && (
+          <ImportStatementModal
+            isOpen={showImport}
+            onClose={() => setShowImport(false)}
+            onImportComplete={handleTransactionCreated}
+          />
+        )}
+      </Suspense>
     </div>
   );
 }
