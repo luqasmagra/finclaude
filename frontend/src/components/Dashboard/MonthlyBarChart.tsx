@@ -30,7 +30,7 @@ export function MonthlyBarChart({ data, currentBalance }: MonthlyBarChartProps) 
           cursor={{ fill: 'rgba(255, 255, 255, 0.04)' }}
           contentStyle={{ background: '#141418', border: '1px solid #27272a', borderRadius: '8px', color: '#fafafa' }}
           itemStyle={{ color: '#fafafa' }}
-          formatter={(value: number | string, name: string) => [formatMoney(Number(value)), name === 'income' ? 'Ingresos' : 'Egresos']}
+          formatter={(value, name) => [formatMoney(Number(value ?? 0)), name === 'income' ? 'Ingresos' : 'Egresos']}
         />
         <Legend formatter={(value) => <span style={{ fontSize: 12, color: '#71717a' }}>{value === 'income' ? 'Ingresos' : 'Egresos'}</span>} />
         {currentBalance !== undefined && (

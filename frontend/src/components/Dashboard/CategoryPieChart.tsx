@@ -26,7 +26,7 @@ export function CategoryPieChart({ data }: CategoryPieChartProps) {
         </Pie>
         <Tooltip
           contentStyle={{ background: '#141418', border: '1px solid #27272a', borderRadius: '8px', color: '#fafafa' }}
-          formatter={(value: number | string, name: string) => [formatMoney(Number(value)), name]}
+          formatter={(value, name) => [formatMoney(Number(value ?? 0)), String(name ?? '')]}
         />
         <Legend formatter={(value) => <span style={{ fontSize: 12, color: '#71717a' }}>{value}</span>} />
       </PieChart>

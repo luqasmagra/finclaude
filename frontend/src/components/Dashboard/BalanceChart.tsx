@@ -43,7 +43,7 @@ export function BalanceChart({ transactions, currentBalance }: BalanceChartProps
         <YAxis stroke="#71717a" fontSize={12} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
         <Tooltip
           contentStyle={{ background: '#141418', border: '1px solid #27272a', borderRadius: '8px', color: '#fafafa' }}
-          formatter={(value: number | string) => [formatMoney(Number(value)), 'Balance']}
+          formatter={(value) => [formatMoney(Number(value ?? 0)), 'Balance']}
         />
         {currentBalance !== undefined && (
           <ReferenceLine
