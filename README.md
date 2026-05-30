@@ -137,7 +137,7 @@ Las 4 tablas tienen RLS habilitado con políticas `FOR ALL TO authenticated`. So
 
 **Endpoint:** `POST /functions/v1/chat`
 **Body:** `{ text: string, accounts: { id, name, type }[] }`
-**Deploy:** v3 en Supabase
+**Deploy:** v12 en Supabase
 
 #### Flujo completo
 
@@ -484,10 +484,21 @@ npm run preview  # Preview production build
 
 - [ ] Cargar historial del chat al iniciar la app (conversations desde DB → frontend)
 - [ ] Botón sync manual MP (transferencias billetera→billetera no generan webhook)
-- [ ] Subir a GitHub
+- [x] Subido a GitHub — https://github.com/luqasmagra/finclaude
 
 ### Edge Functions eliminadas (legacy)
 
 - ~~`parse-transaction`~~ — reemplazada por el path `transaction` dentro de `chat`
 - ~~`query-finances`~~ — reemplazada por el path `query` dentro de `chat`
+
+---
+
+### 4.4 `mp-sync`
+
+**Endpoint:** `POST /functions/v1/mp-sync`
+**Deploy:** v13 en Supabase
+
+Sync manual de pagos de Mercado Pago. Suple la limitación del webhook: las transferencias billetera→billetera dentro de MP **no disparan el webhook** de `mp-webhook`. Esta función permite sincronizar manualmente esos movimientos.
+
+**No usa Claude.** Consulta directamente la API de MP y registra los pagos pendientes en `transactions` con `source: "mercadopago"`, respetando la idempotencia via `external_id`.
 
