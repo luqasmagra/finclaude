@@ -15,8 +15,9 @@ Project ref: aqkymmcfktldheqgckja (mismo proyecto que scraper-ar)
 ### Tablas
 
 - `accounts`: cuentas del usuario (id, name, type, currency, balance, active)
-- `transactions`: movimientos (id, account_id, amount, description, category, date, source, created_at)
+- `transactions`: movimientos (id, account_id, amount, description, category_id→categories, date, source, external_id UNIQUE, created_at)
 - `categories`: categorías de gastos (id, name, color, icon)
+- `conversations`: historial del chat (id, role[user/assistant/summary], content, created_at)
 
 ---
 
@@ -61,18 +62,23 @@ finanzas/
 │   └── functions/
 │       ├── chat/              ← clasifica intent + registra transacción o consulta DB
 │       ├── import-statement/  ← parsea extracto bancario (modo parse + confirm)
-│       └── mp-webhook/        ← recibe webhooks de Mercado Pago
+│       ├── mp-webhook/        ← recibe webhooks de Mercado Pago
+│       └── mp-sync/           ← sync manual de MP (transferencias billetera→billetera)
 └── .claude/
     ├── agents/
-    │   ├── parser.md
     │   ├── analyst.md
     │   ├── categorizer.md
-    │   └── reporter.md
-    └── commands/
-        ├── add-transaction.md
-        ├── query.md
-        ├── import-pdf.md
-        └── report.md
+    │   ├── model-updater.md
+    │   ├── parser.md
+    │   ├── reporter.md
+    │   └── security-reviewer.md
+    ├── commands/
+    │   ├── code-review.md
+    │   └── fix-review.md
+    └── skills/
+        ├── check-logs/
+        ├── db-query/
+        └── deploy-functions/
 ```
 
 ---
@@ -85,6 +91,8 @@ finanzas/
 | `analyst` | "cuánto", "gasté", "balance", "resumen" | Consulta DB y responde preguntas en lenguaje natural |
 | `categorizer` | transacción sin categoría | Asigna categoría automáticamente por descripción |
 | `reporter` | "reporte", "informe", "mes" | Genera reporte mensual con insights |
+| `model-updater` | edición de Edge Functions | Audita model IDs en supabase/functions/ y reporta stale |
+| `security-reviewer` | revisión de mp-webhook, chat, RLS | Revisa seguridad: HMAC, JWT, RLS, SQL injection, XSS |
 
 ---
 
