@@ -7,7 +7,8 @@ const supabase = createClient(
 
 const MP_TOKEN = Deno.env.get('MP_ACCESS_TOKEN')!;
 const MP_WEBHOOK_SECRET = Deno.env.get('MP_WEBHOOK_SECRET')!;
-const MP_USER_ID = '384898465';
+const MP_USER_ID = Deno.env.get('MP_USER_ID');
+if (!MP_USER_ID) throw new Error('[mp-webhook] MP_USER_ID env var is not set');
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
