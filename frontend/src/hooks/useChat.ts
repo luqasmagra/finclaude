@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import { ChatMessage, ChatResponse, Account } from '../types';
 
@@ -6,6 +6,9 @@ export function useChat(accounts: Account[]) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+
+  const accountsRef = useRef(accounts);
+  useEffect(() => { accountsRef.current = accounts; }, [accounts]);
 
   const loadHistory = useCallback(async () => {
     if (historyLoaded) return;
@@ -37,7 +40,7 @@ export function useChat(accounts: Account[]) {
       const { data: json, error: invokeError } = await supabase.functions.invoke<ChatResponse>('chat', {
         body: {
           text,
-          accounts: accounts.map(a => ({ id: a.id, name: a.name, type: a.type })),
+          accounts: accountsRef.current.map(a => ({ id: a.id, name: a.name, type: a.type })),
         },
       });
 
@@ -57,7 +60,7 @@ export function useChat(accounts: Account[]) {
       setLoading(false);
       return { type: 'error', message: errorMsg };
     }
-  }, [accounts]);
+  }, []);
 
   const clearHistory = useCallback(async () => {
     try {
