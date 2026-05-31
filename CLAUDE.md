@@ -65,11 +65,6 @@ finanzas/
 │       ├── mp-webhook/        ← receives Mercado Pago webhooks
 │       └── mp-sync/           ← manual MP sync (wallet-to-wallet transfers)
 └── .claude/
-    ├── agents/
-    │   ├── accessibility.md
-    │   ├── analyst.md
-    │   ├── model-updater.md
-    │   └── security-reviewer.md
     └── skills/
         ├── deploy-functions/
         ├── frontend-design/
@@ -80,17 +75,6 @@ finanzas/
         ├── vercel-react-best-practices/
         └── web-design-guidelines/
 ```
-
----
-
-## Agents
-
-| Agent               | Trigger                                       | Function                                                                           |
-| ------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------- |
-| `accessibility`     | "a11y", "accesibilidad", modals/forms/dialogs | Reviews WCAG, keyboard navigation, ARIA, focus, and contrast in the React frontend |
-| `analyst`           | "cuánto", "gasté", "balance", "resumen"       | Queries DB and answers questions in natural language                               |
-| `model-updater`     | editing Edge Functions                        | Audits model IDs in supabase/functions/ and reports stale ones                     |
-| `security-reviewer` | reviewing mp-webhook, chat, RLS               | Reviews security: HMAC, JWT, RLS, SQL injection, XSS                               |
 
 ---
 
