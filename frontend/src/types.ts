@@ -23,6 +23,7 @@ export interface Transaction {
   category_id: string | null;
   date: string;
   source: 'manual' | 'import' | 'mercadopago';
+  external_id?: string;
   created_at: string;
   accounts?: { name: string };
   categories?: { name: string; color: string; icon: string };
