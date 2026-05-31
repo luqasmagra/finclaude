@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js';
 import Anthropic from 'npm:@anthropic-ai/sdk';
+import { corsHeaders, handleCors } from '../_shared/cors.ts';
 
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
@@ -9,13 +10,8 @@ const supabase = createClient(
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
 
 const MP_TOKEN = Deno.env.get('MP_ACCESS_TOKEN')!;
-const MP_USER_ID = '384898465';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('FRONTEND_URL') ?? '*',
-  'Access-Control-Allow-Headers':
-    'authorization, content-type, apikey, x-client-info',
-};
+const MP_USER_ID = Deno.env.get('MP_USER_ID');
+if (!MP_USER_ID) throw new Error('[mp-sync] MP_USER_ID env var is not set');
 
 async function classifyDescriptions(
   descriptions: string[],
@@ -99,8 +95,8 @@ ${descriptionsList}`,
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS')
-    return new Response(null, { headers: corsHeaders });
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   if (req.method !== 'POST') {
     return new Response('Method not allowed', {
@@ -132,16 +128,6 @@ Deno.serve(async (req) => {
 
   const mpData = await mpRes.json();
   const payments = mpData.results ?? [];
-
-  console.log(
-    'MP response - total:',
-    mpData.paging?.total,
-    'results count:',
-    payments.length,
-  );
-  if (payments.length > 0) {
-    console.log('First payment sample:', JSON.stringify(payments[0], null, 2));
-  }
 
   if (payments.length === 0) {
     return new Response(
@@ -208,7 +194,6 @@ Deno.serve(async (req) => {
   if (categories && categories.length > 0) {
     try {
       categoryIds = await classifyDescriptions(descriptions, categories);
-      console.log('Haiku classifications:', JSON.stringify(categoryIds));
     } catch (err) {
       console.error('Haiku classification error:', err);
     }
@@ -220,7 +205,7 @@ Deno.serve(async (req) => {
         (p.date_approved ?? (p.date_created as string))?.split('T')[0] ??
         new Date().toISOString().split('T')[0];
 
-      const isIncome = String(p.collector?.id) === MP_USER_ID;
+      const isIncome = String(p.payer?.id) !== MP_USER_ID;
       const amount = isIncome
         ? (p.transaction_amount as number)
         : -(p.transaction_amount as number);
@@ -237,17 +222,11 @@ Deno.serve(async (req) => {
     },
   );
 
-  console.log(
-    'Transactions to insert:',
-    JSON.stringify(transactionsToInsert, null, 2),
-  );
-
   const { error } = await supabase
     .from('transactions')
     .insert(transactionsToInsert);
 
   if (error) {
-    console.error('Supabase insert error:', JSON.stringify(error, null, 2));
     return new Response(JSON.stringify({ error: error.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
