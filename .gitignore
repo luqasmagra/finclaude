@@ -19,3 +19,8 @@ Thumbs.db
 # Editor
 .vscode/
 *.local
+
+# Skills junctions (real files live in .agents/skills/)
+.claude/skills/supabase/
+.claude/skills/supabase-postgres-best-practices/
+.claude/skills/improve-codebase-architecture/
