@@ -5,6 +5,7 @@ import { Account } from '../types';
 interface AccountsContextType {
   accounts: Account[];
   loading: boolean;
+  error: string | null;
   refetch: () => Promise<void>;
   createAccount: (account: Omit<Account, 'id' | 'created_at' | 'active'>) => Promise<{ error: Error | null }>;
   deleteAccount: (id: string) => Promise<{ error: Error | null }>;
@@ -18,21 +19,18 @@ const AccountsContext = createContext<AccountsContextType | undefined>(undefined
 export function AccountsProvider({ children }: { children: ReactNode }) {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchAccounts = useCallback(async (showLoading = true) => {
-    if (showLoading) {
-      setLoading(true);
-    }
-    const { data, error } = await supabase
+    if (showLoading) setLoading(true);
+    const { data, error: fetchError } = await supabase
       .from('accounts')
       .select('*')
       .eq('active', true)
       .order('name');
-    if (error) console.error('[AccountsContext] fetchAccounts:', error.message);
+    setError(fetchError?.message ?? null);
     setAccounts(data || []);
-    if (showLoading) {
-      setLoading(false);
-    }
+    if (showLoading) setLoading(false);
   }, []);
 
   const refetch = useCallback(() => fetchAccounts(false), [fetchAccounts]);
@@ -75,7 +73,7 @@ export function AccountsProvider({ children }: { children: ReactNode }) {
   };
 
     return (
-    <AccountsContext.Provider value={{ accounts, loading, refetch, createAccount, deleteAccount, getTotalBalance, getBalanceByCurrency, getAccountsByCurrency }}>
+    <AccountsContext.Provider value={{ accounts, loading, error, refetch, createAccount, deleteAccount, getTotalBalance, getBalanceByCurrency, getAccountsByCurrency }}>
       {children}
     </AccountsContext.Provider>
   );
