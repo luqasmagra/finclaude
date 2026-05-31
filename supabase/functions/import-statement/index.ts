@@ -1,17 +1,12 @@
 import Anthropic from 'npm:@anthropic-ai/sdk';
 import { createClient } from 'npm:@supabase/supabase-js';
+import { corsHeaders, handleCors } from '../_shared/cors.ts';
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
 const supabase = createClient(
   Deno.env.get('SUPABASE_URL')!,
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': Deno.env.get('FRONTEND_URL') ?? '*',
-  'Access-Control-Allow-Headers':
-    'authorization, content-type, apikey, x-client-info',
-};
 
 // ─── PARSE: extract transactions from text with Sonnet ───────────────────────
 async function parseStatement(text: string, account_id: string) {
@@ -130,8 +125,8 @@ async function confirmImport(
 
 // ─── ENTRY POINT ─────────────────────────────────────────────────────────────
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS')
-    return new Response(null, { headers: corsHeaders });
+  const corsResponse = handleCors(req);
+  if (corsResponse) return corsResponse;
 
   try {
     const body = await req.json();
