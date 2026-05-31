@@ -10,7 +10,7 @@ Experiment with Claude agents, tool use, structured output, and Supabase Edge Fu
 
 ## Database (Supabase)
 
-Project ref: aqkymmcfktldheqgckja (same project as scraper-ar)
+Project ref: aqkymmcfktldheqgckja
 
 ### Tables
 
@@ -71,11 +71,12 @@ finanzas/
     │   ├── model-updater.md
     │   └── security-reviewer.md
     └── skills/
-        ├── check-logs/
-        ├── db-query/
         ├── deploy-functions/
         ├── frontend-design/
+        ├── improve-codebase-architecture/
         ├── prompt-engineer/
+        ├── supabase/
+        ├── supabase-postgres-best-practices/
         ├── vercel-react-best-practices/
         └── web-design-guidelines/
 ```
@@ -84,12 +85,12 @@ finanzas/
 
 ## Agents
 
-| Agent | Trigger | Function |
-|-------|---------|----------|
-| `accessibility` | "a11y", "accesibilidad", modals/forms/dialogs | Reviews WCAG, keyboard navigation, ARIA, focus, and contrast in the React frontend |
-| `analyst` | "cuánto", "gasté", "balance", "resumen" | Queries DB and answers questions in natural language |
-| `model-updater` | editing Edge Functions | Audits model IDs in supabase/functions/ and reports stale ones |
-| `security-reviewer` | reviewing mp-webhook, chat, RLS | Reviews security: HMAC, JWT, RLS, SQL injection, XSS |
+| Agent               | Trigger                                       | Function                                                                           |
+| ------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `accessibility`     | "a11y", "accesibilidad", modals/forms/dialogs | Reviews WCAG, keyboard navigation, ARIA, focus, and contrast in the React frontend |
+| `analyst`           | "cuánto", "gasté", "balance", "resumen"       | Queries DB and answers questions in natural language                               |
+| `model-updater`     | editing Edge Functions                        | Audits model IDs in supabase/functions/ and reports stale ones                     |
+| `security-reviewer` | reviewing mp-webhook, chat, RLS               | Reviews security: HMAC, JWT, RLS, SQL injection, XSS                               |
 
 ---
 
