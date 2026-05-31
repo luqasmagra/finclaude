@@ -1,4 +1,60 @@
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useReducer } from 'react';
+
+type UIState = {
+  currentTab: 'dashboard' | 'chat' | 'transactions'
+  showAddAccount: boolean
+  showAddExpense: boolean
+  showImport: boolean
+  syncingMP: boolean
+  sidebarOpen: boolean
+  mobileMenuOpen: boolean
+}
+
+type UIAction =
+  | { type: 'SET_TAB'; tab: UIState['currentTab'] }
+  | { type: 'OPEN_MODAL'; modal: 'addAccount' | 'addExpense' | 'import' }
+  | { type: 'CLOSE_MODAL'; modal: 'addAccount' | 'addExpense' | 'import' }
+  | { type: 'CLOSE_MENU' }
+  | { type: 'TOGGLE_SIDEBAR' }
+  | { type: 'CLOSE_SIDEBAR' }
+  | { type: 'TOGGLE_MOBILE_MENU' }
+  | { type: 'SET_SYNCING'; value: boolean }
+
+const initialUIState: UIState = {
+  currentTab: 'dashboard',
+  showAddAccount: false,
+  showAddExpense: false,
+  showImport: false,
+  syncingMP: false,
+  sidebarOpen: false,
+  mobileMenuOpen: false,
+}
+
+function uiReducer(state: UIState, action: UIAction): UIState {
+  switch (action.type) {
+    case 'SET_TAB':
+      return { ...state, currentTab: action.tab, mobileMenuOpen: false, sidebarOpen: false }
+    case 'OPEN_MODAL':
+      return {
+        ...state,
+        showAddAccount: action.modal === 'addAccount',
+        showAddExpense: action.modal === 'addExpense',
+        showImport: action.modal === 'import',
+      }
+    case 'CLOSE_MODAL':
+      return {
+        ...state,
+        showAddAccount: action.modal === 'addAccount' ? false : state.showAddAccount,
+        showAddExpense: action.modal === 'addExpense' ? false : state.showAddExpense,
+        showImport: action.modal === 'import' ? false : state.showImport,
+      }
+    case 'CLOSE_MENU':     return { ...state, mobileMenuOpen: false }
+    case 'TOGGLE_SIDEBAR': return { ...state, sidebarOpen: !state.sidebarOpen }
+    case 'CLOSE_SIDEBAR':  return { ...state, sidebarOpen: false }
+    case 'TOGGLE_MOBILE_MENU': return { ...state, mobileMenuOpen: !state.mobileMenuOpen }
+    case 'SET_SYNCING':    return { ...state, syncingMP: action.value }
+  }
+}
 import { useAuth } from '../../hooks/useAuth';
 import { useAccountsContext } from '../../context/AccountsContext';
 import { useTransactionsContext } from '../../context/TransactionsContext';
@@ -29,20 +85,15 @@ export function AppLayout() {
   const { refetch: refetchAccounts } = useAccountsContext();
   const { refetch: refetchTransactions } = useTransactionsContext();
   const { addToast } = useToast();
-  const [currentTab, setCurrentTab] = useState<'dashboard' | 'chat' | 'transactions'>('dashboard');
-  const [showAddAccount, setShowAddAccount] = useState(false);
-  const [showAddExpense, setShowAddExpense] = useState(false);
-  const [showImport, setShowImport] = useState(false);
-  const [syncingMP, setSyncingMP] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [ui, dispatch] = useReducer(uiReducer, initialUIState);
+  const { currentTab, showAddAccount, showAddExpense, showImport, syncingMP, sidebarOpen, mobileMenuOpen } = ui;
 
   const handleTransactionCreated = async () => {
     await Promise.all([refetchAccounts(), refetchTransactions()]);
   };
 
   const handleSyncMP = async () => {
-    setSyncingMP(true);
+    dispatch({ type: 'SET_SYNCING', value: true });
     try {
       const { data, error } = await supabase.functions.invoke('mp-sync');
       if (error || !data) {
@@ -82,11 +133,9 @@ export function AppLayout() {
         message: 'Error de conexión',
       });
     } finally {
-      setSyncingMP(false);
+      dispatch({ type: 'SET_SYNCING', value: false });
     }
   };
-
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
   if (loading) {
     return (
@@ -114,15 +163,15 @@ export function AppLayout() {
 
       <Header
         currentTab={currentTab}
-        onTabChange={(tab) => { setCurrentTab(tab); setMobileMenuOpen(false); setSidebarOpen(false); }}
-        onImport={() => setShowImport(true)}
-        onAddExpense={() => setShowAddExpense(true)}
+        onTabChange={(tab) => dispatch({ type: 'SET_TAB', tab })}
+        onImport={() => dispatch({ type: 'OPEN_MODAL', modal: 'import' })}
+        onAddExpense={() => dispatch({ type: 'OPEN_MODAL', modal: 'addExpense' })}
         onSyncMP={handleSyncMP}
         syncingMP={syncingMP}
-        onToggleSidebar={toggleSidebar}
+        onToggleSidebar={() => dispatch({ type: 'TOGGLE_SIDEBAR' })}
         sidebarOpen={sidebarOpen}
         mobileMenuOpen={mobileMenuOpen}
-        onMobileMenuToggle={() => setMobileMenuOpen(!mobileMenuOpen)}
+        onMobileMenuToggle={() => dispatch({ type: 'TOGGLE_MOBILE_MENU' })}
       />
 
       {/* Mobile nav overlay backdrop */}
@@ -130,7 +179,7 @@ export function AppLayout() {
         <div
           className="fixed top-[61px] bottom-0 left-0 right-0 z-[59] lg:hidden"
           style={{ background: 'rgba(9, 9, 11, 0.8)', backdropFilter: 'blur(4px)' }}
-          onClick={() => setMobileMenuOpen(false)}
+          onClick={() => dispatch({ type: 'CLOSE_MENU' })}
           aria-hidden="true"
         />
       )}
@@ -159,7 +208,7 @@ export function AppLayout() {
           ].map(({ tab, label, icon: Icon }) => (
             <button
               key={tab}
-              onClick={() => { setCurrentTab(tab); setMobileMenuOpen(false); }}
+              onClick={() => dispatch({ type: 'SET_TAB', tab })}
               className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all"
               style={
                 currentTab === tab
@@ -176,7 +225,7 @@ export function AppLayout() {
           <div className="h-px my-2" style={{ background: 'var(--border-subtle)' }} />
 
           <button
-            onClick={() => { setShowAddExpense(true); setMobileMenuOpen(false); }}
+            onClick={() => { dispatch({ type: 'OPEN_MODAL', modal: 'addExpense' }); dispatch({ type: 'CLOSE_MENU' }); }}
             className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all"
             style={{ background: 'linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%)', color: '#09090b' }}
           >
@@ -187,7 +236,7 @@ export function AppLayout() {
           <div className="h-px my-2" style={{ background: 'var(--border-subtle)' }} />
 
           <button
-            onClick={() => { handleSyncMP(); setMobileMenuOpen(false); }}
+            onClick={() => { handleSyncMP(); dispatch({ type: 'CLOSE_MENU' }); }}
             disabled={syncingMP}
             className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all disabled:opacity-40"
             style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
@@ -197,7 +246,7 @@ export function AppLayout() {
           </button>
 
           <button
-            onClick={() => { setShowImport(true); setMobileMenuOpen(false); }}
+            onClick={() => { dispatch({ type: 'OPEN_MODAL', modal: 'import' }); dispatch({ type: 'CLOSE_MENU' }); }}
             className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all"
             style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', color: 'var(--text-secondary)' }}
           >
@@ -208,7 +257,7 @@ export function AppLayout() {
           <div className="flex-1" />
 
           <button
-            onClick={() => { setMobileMenuOpen(false); signOut(); }}
+            onClick={() => { dispatch({ type: 'CLOSE_MENU' }); signOut(); }}
             className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-sm font-medium transition-all"
             style={{ background: 'var(--negative-bg)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--negative)' }}
           >
@@ -224,7 +273,7 @@ export function AppLayout() {
           <div
             className="fixed top-[61px] bottom-0 left-0 right-0 z-[59] lg:hidden"
             style={{ background: 'rgba(9, 9, 11, 0.8)', backdropFilter: 'blur(4px)' }}
-            onClick={() => setSidebarOpen(false)}
+            onClick={() => dispatch({ type: 'CLOSE_SIDEBAR' })}
             aria-hidden="true"
           />
         )}
@@ -238,8 +287,8 @@ export function AppLayout() {
         `}>
           <Sidebar
             onAddAccount={() => {
-              setShowAddAccount(true);
-              setSidebarOpen(false);
+              dispatch({ type: 'OPEN_MODAL', modal: 'addAccount' });
+              dispatch({ type: 'CLOSE_SIDEBAR' });
             }}
           />
         </div>
@@ -259,14 +308,14 @@ export function AppLayout() {
         {showAddAccount && (
           <AddAccountModal
             isOpen={showAddAccount}
-            onClose={() => setShowAddAccount(false)}
+            onClose={() => dispatch({ type: 'CLOSE_MODAL', modal: 'addAccount' })}
           />
         )}
 
         {showAddExpense && (
           <AddExpenseModal
             isOpen={showAddExpense}
-            onClose={() => setShowAddExpense(false)}
+            onClose={() => dispatch({ type: 'CLOSE_MODAL', modal: 'addExpense' })}
             onExpenseCreated={handleTransactionCreated}
           />
         )}
@@ -274,7 +323,7 @@ export function AppLayout() {
         {showImport && (
           <ImportStatementModal
             isOpen={showImport}
-            onClose={() => setShowImport(false)}
+            onClose={() => dispatch({ type: 'CLOSE_MODAL', modal: 'import' })}
             onImportComplete={handleTransactionCreated}
           />
         )}
