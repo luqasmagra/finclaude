@@ -27,9 +27,6 @@ export function ImportStatementModal({ isOpen, onClose, onImportComplete }: Impo
   const [error, setError] = useState('');
   const accountRef = useRef<HTMLSelectElement>(null);
 
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
   const handleClose = useCallback(() => {
     setStep('select');
     setSelectedAccount('');
@@ -85,23 +82,12 @@ export function ImportStatementModal({ isOpen, onClose, onImportComplete }: Impo
     setError('');
 
     try {
-      const res = await fetch(
-        `${SUPABASE_URL}/functions/v1/import-statement`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_ANON_KEY },
-          body: JSON.stringify({
-            confirm: true,
-            account_id: selectedAccount,
-            transactions: parsedTransactions,
-          }),
-        }
-      );
+      const { data: json, error: invokeError } = await supabase.functions.invoke('import-statement', {
+        body: { confirm: true, account_id: selectedAccount, transactions: parsedTransactions },
+      });
 
-      const json = await res.json();
-
-      if (!res.ok) {
-        setError(json.message || 'Error al importar');
+      if (invokeError || !json) {
+        setError(invokeError?.message || 'Error al importar');
         return;
       }
 
