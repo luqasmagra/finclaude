@@ -9,7 +9,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '%input%' | grep -q 'frontend/src' && cd frontend && npx tsc --noEmit 2>&1 | head -20 || exit 0"
+            "command": "echo '%input%' | grep -q 'client/src' && cd client && npx tsc --noEmit 2>&1 | head -20 || exit 0"
           }
         ]
       },
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '%input%' | grep -q 'frontend/src' && cd frontend && npx eslint src --ext .ts,.tsx 2>&1 | head -20 || exit 0"
+            "command": "echo '%input%' | grep -q 'client/src' && cd client && npx eslint src --ext .ts,.tsx 2>&1 | head -20 || exit 0"
           }
         ]
       },
