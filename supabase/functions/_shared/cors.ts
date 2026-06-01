@@ -1,8 +1,8 @@
-const FRONTEND_URL = Deno.env.get('FRONTEND_URL');
-if (!FRONTEND_URL) throw new Error('[cors] FRONTEND_URL env var is not set');
+const CLIENT_URL = Deno.env.get('CLIENT_URL');
+if (!CLIENT_URL) throw new Error('[cors] CLIENT_URL env var is not set');
 
 export const corsHeaders = {
-  'Access-Control-Allow-Origin': FRONTEND_URL,
+  'Access-Control-Allow-Origin': CLIENT_URL,
   'Access-Control-Allow-Headers':
     'authorization, content-type, apikey, x-client-info',
 };
