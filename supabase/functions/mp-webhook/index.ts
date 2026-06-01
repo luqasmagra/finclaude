@@ -5,10 +5,9 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
 );
 
-const MP_TOKEN = Deno.env.get('MP_ACCESS_TOKEN')!;
-const MP_WEBHOOK_SECRET = Deno.env.get('MP_WEBHOOK_SECRET')!;
-const MP_USER_ID = Deno.env.get('MP_USER_ID');
-if (!MP_USER_ID) throw new Error('[mp-webhook] MP_USER_ID env var is not set');
+const MP_TOKEN = Deno.env.get('MP_ACCESS_TOKEN') ?? '';
+const MP_WEBHOOK_SECRET = Deno.env.get('MP_WEBHOOK_SECRET') ?? '';
+const MP_USER_ID = Deno.env.get('MP_USER_ID') ?? '';
 
 function timingSafeEqual(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -60,98 +59,106 @@ Deno.serve(async (req) => {
     return new Response('OK', { status: 200 });
   }
 
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', { status: 405 });
-  }
-
-  let body: { type?: string; data?: { id?: string } };
   try {
-    body = await req.json();
-  } catch {
-    return new Response('Invalid JSON', { status: 400 });
-  }
+    if (req.method !== 'POST') {
+      return new Response('Method not allowed', { status: 405 });
+    }
 
-  if (body.type !== 'payment' || !body.data?.id) {
-    return new Response('OK', { status: 200 });
-  }
+    if (!MP_USER_ID) {
+      return new Response('MP_USER_ID env var is not set', { status: 500 });
+    }
 
-  const paymentId = String(body.data.id);
+    let body: { type?: string; data?: { id?: string } };
+    try {
+      body = await req.json();
+    } catch {
+      return new Response('Invalid JSON', { status: 400 });
+    }
 
-  // Validate MP signature
-  const valid = await validateSignature(req, paymentId);
-  if (!valid) {
-    return new Response('Unauthorized', { status: 401 });
-  }
+    if (body.type !== 'payment' || !body.data?.id) {
+      return new Response('OK', { status: 200 });
+    }
 
-  // Idempotency: do not process the same payment twice
-  const { data: existing } = await supabase
-    .from('transactions')
-    .select('id')
-    .eq('external_id', paymentId)
-    .maybeSingle();
+    const paymentId = String(body.data.id);
 
-  if (existing) {
-    return new Response('Already processed', { status: 200 });
-  }
+    // Validate MP signature
+    const valid = await validateSignature(req, paymentId);
+    if (!valid) {
+      return new Response('Unauthorized', { status: 401 });
+    }
 
-  // Fetch payment details from the MP API
-  const mpRes = await fetch(
-    `https://api.mercadopago.com/v1/payments/${paymentId}`,
-    {
-      headers: { Authorization: `Bearer ${MP_TOKEN}` },
-    },
-  );
+    // Idempotency: do not process the same payment twice
+    const { data: existing } = await supabase
+      .from('transactions')
+      .select('id')
+      .eq('external_id', paymentId)
+      .maybeSingle();
 
-  if (!mpRes.ok) {
-    return new Response('MP API error', { status: 500 });
-  }
+    if (existing) {
+      return new Response('Already processed', { status: 200 });
+    }
 
-  const payment = await mpRes.json();
+    // Fetch payment details from the MP API
+    const mpRes = await fetch(
+      `https://api.mercadopago.com/v1/payments/${paymentId}`,
+      {
+        headers: { Authorization: `Bearer ${MP_TOKEN}` },
+      },
+    );
 
-  // Only record approved payments
-  if (payment.status !== 'approved') {
-    return new Response('OK', { status: 200 });
-  }
+    if (!mpRes.ok) {
+      return new Response('MP API error', { status: 500 });
+    }
 
-  // If we are the payer → expense (negative). If we are the collector → income (positive).
-  const isPayer = String(payment.payer?.id) === MP_USER_ID;
-  const amount = isPayer
-    ? -payment.transaction_amount
-    : payment.transaction_amount;
+    const payment = await mpRes.json();
 
-  const date =
-    (payment.date_approved ?? payment.date_created)?.split('T')[0] ??
-    new Date().toISOString().split('T')[0];
+    // Only record approved payments
+    if (payment.status !== 'approved') {
+      return new Response('OK', { status: 200 });
+    }
 
-  const description =
-    payment.description ||
-    (isPayer ? `Pago MP #${paymentId}` : `Cobro MP #${paymentId}`);
+    // If we are the payer → expense (negative). If we are the collector → income (positive).
+    const isPayer = String(payment.payer?.id) === MP_USER_ID;
+    const amount = isPayer
+      ? -payment.transaction_amount
+      : payment.transaction_amount;
 
-  // Find the Mercado Pago account in the DB
-  const { data: account } = await supabase
-    .from('accounts')
-    .select('id')
-    .ilike('name', '%mercado pago%')
-    .maybeSingle();
+    const date =
+      (payment.date_approved ?? payment.date_created)?.split('T')[0] ??
+      new Date().toISOString().split('T')[0];
 
-  if (!account) {
-    return new Response('MP account not found in DB', { status: 500 });
-  }
+    const description =
+      payment.description ||
+      (isPayer ? `Pago MP #${paymentId}` : `Cobro MP #${paymentId}`);
 
-  const { error } = await supabase.from('transactions').insert({
-    account_id: account.id,
-    amount,
-    description,
-    date,
-    source: 'mercadopago',
-    external_id: paymentId,
-  });
+    // Find the Mercado Pago account in the DB
+    const { data: account } = await supabase
+      .from('accounts')
+      .select('id')
+      .ilike('name', '%mercado pago%')
+      .maybeSingle();
 
-  if (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
+    if (!account) {
+      return new Response('MP account not found in DB', { status: 500 });
+    }
+
+    const { error } = await supabase.from('transactions').insert({
+      account_id: account.id,
+      amount,
+      description,
+      date,
+      source: 'mercadopago',
+      external_id: paymentId,
     });
-  }
 
-  return new Response('OK', { status: 200 });
+    if (error) {
+      return new Response(JSON.stringify({ error: error.message }), {
+        status: 500,
+      });
+    }
+
+    return new Response('OK', { status: 200 });
+  } catch (err) {
+    return new Response(String(err), { status: 500 });
+  }
 });
