@@ -15,7 +15,7 @@
    - [mp-webhook](#43-mp-webhook)
    - [mp-sync](#44-mp-sync)
 5. [Claude usage — models, tools, and strategies](#5-claude-usage--models-tools-and-strategies)
-6. [Frontend](#6-frontend)
+6. [Client](#6-client)
 7. [Current state and roadmap](#7-current-state-and-roadmap)
 
 ---
@@ -30,7 +30,7 @@
 | **Auth**             | Supabase Auth email/password via `@supabase/supabase-js`, single user                            |
 | **AI entry point**   | All Claude processing runs in Edge Functions (server-side), never on the client                  |
 
-The user writes in natural language. The frontend sends the text to `/functions/v1/chat`. The Edge Function determines whether it's a transaction record or a query, and acts accordingly.
+The user writes in natural language. The client sends the text to `/functions/v1/chat`. The Edge Function determines whether it's a transaction record or a query, and acts accordingly.
 
 ---
 
@@ -38,7 +38,7 @@ The user writes in natural language. The frontend sends the text to `/functions/
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Frontend (React + TypeScript + Vite + Tailwind)            │
+│  Client (React + TypeScript + Vite + Tailwind)              │
 │                                                             │
 │  src/                                                       │
 │  ├── App.tsx (auth flow)                                    │
@@ -131,7 +131,7 @@ Used by the `chat` Edge Function to maintain persistent history across sessions.
 
 ### Trigger: `trg_update_account_balance`
 
-Fires on `INSERT`, `UPDATE`, and `DELETE` on `transactions`. Recalculates and updates `accounts.balance` automatically. The frontend does not need to manage balances manually.
+Fires on `INSERT`, `UPDATE`, and `DELETE` on `transactions`. Recalculates and updates `accounts.balance` automatically. The client does not need to manage balances manually.
 
 ### RLS
 
@@ -265,7 +265,7 @@ The response includes the parsed transactions **and a preview** calculated in th
 }
 ```
 
-The frontend shows the preview in a modal before confirming. The user can review before anything is persisted.
+The client shows the preview in a modal before confirming. The user can review before anything is persisted.
 
 #### Confirm mode
 
@@ -408,7 +408,7 @@ Claude resolves semantic ambiguity ("pagué con la tarjeta" → picks the `bank`
 
 ---
 
-## 6. Frontend
+## 6. Client
 
 **Stack:** React 19 + TypeScript + Vite + Tailwind CSS
 
@@ -464,7 +464,7 @@ src/
 
 **Sidebar:** Active accounts with balance (updated in real time after a transaction; negative balance in red), categories with color and icon, last 5 transactions.
 
-**Chat:** A single `fetch()` to `/functions/v1/chat` per message. The frontend passes `accounts[]` in the body (already available from the sidebar). Assistant responses are rendered with `marked.js`.
+**Chat:** A single `fetch()` to `/functions/v1/chat` per message. The client passes `accounts[]` in the body (already available from the sidebar). Assistant responses are rendered with `marked.js`.
 
 **AddExpenseModal:** Manual expense form opened from the header or mobile menu. Uses a custom in-modal calendar for the date field, inserts a negative `transactions.amount` with `source: "manual"`, then refreshes accounts and transactions.
 
@@ -486,7 +486,7 @@ src/
 ### Dev workflow
 
 ```bash
-cd frontend
+cd client
 npm run dev      # Vite dev server (hot reload)
 npm run build    # TypeScript check + Vite build
 npm run preview  # Preview production build
