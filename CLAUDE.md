@@ -23,7 +23,7 @@ Project ref: aqkymmcfktldheqgckja
 
 ## Architecture
 
-- **Frontend:** React 19 + TypeScript + Vite + Tailwind CSS
+- **Client:** React 19 + TypeScript + Vite + Tailwind CSS
 - **Auth:** Supabase Auth (email/password) via @supabase/supabase-js
 - **Backend:** Supabase Edge Functions (TypeScript/Deno) — Claude API calls from the server
 - **DB:** Supabase PostgreSQL (tables: accounts, transactions, categories, conversations)
@@ -32,10 +32,10 @@ Project ref: aqkymmcfktldheqgckja
 ## Main flow
 
 1. User writes in natural language or uploads a PDF
-2. Frontend calls an Edge Function, or writes directly to Supabase for manual UI actions
+2. Client calls an Edge Function, or writes directly to Supabase for manual UI actions
 3. Edge Function calls Claude with the required tools (tool use)
 4. Claude executes the action (insert transaction, query DB, generate report)
-5. Result returns to the frontend
+5. Result returns to the client
 
 ## File Structure
 
@@ -43,8 +43,8 @@ Project ref: aqkymmcfktldheqgckja
 finanzas/
 ├── CLAUDE.md                   <- this file
 ├── README.md                   <- full technical documentation
-├── index.html                  <- legacy frontend (vanilla JS, unused)
-├── frontend/                   <- React + TypeScript + Vite frontend
+├── index.html                  <- legacy client (vanilla JS, unused)
+├── client/                     <- React + TypeScript + Vite client
 │   ├── src/
 │   │   ├── App.tsx            ← main component with auth flow
 │   │   ├── main.tsx           ← entry point
@@ -88,7 +88,7 @@ finanzas/
 
 ## Tech Stack (DO NOT CHANGE without explicit request)
 
-- Frontend: React 19 + TypeScript + Vite + Tailwind CSS
+- Client: React 19 + TypeScript + Vite + Tailwind CSS
 - Backend: Supabase Edge Functions (Deno/TypeScript)
 - Auth: Supabase Auth (email/password) via @supabase/supabase-js
 - DB: Supabase PostgreSQL
