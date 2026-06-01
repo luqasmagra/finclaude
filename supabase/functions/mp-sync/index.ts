@@ -9,9 +9,8 @@ const supabase = createClient(
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
 
-const MP_TOKEN = Deno.env.get('MP_ACCESS_TOKEN')!;
-const MP_USER_ID = Deno.env.get('MP_USER_ID');
-if (!MP_USER_ID) throw new Error('[mp-sync] MP_USER_ID env var is not set');
+const MP_TOKEN = Deno.env.get('MP_ACCESS_TOKEN') ?? '';
+const MP_USER_ID = Deno.env.get('MP_USER_ID') ?? '';
 
 async function classifyDescriptions(
   descriptions: string[],
@@ -98,14 +97,22 @@ Deno.serve(async (req) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
 
-  if (req.method !== 'POST') {
-    return new Response('Method not allowed', {
-      status: 405,
-      headers: corsHeaders,
-    });
-  }
+  try {
+    if (req.method !== 'POST') {
+      return new Response('Method not allowed', {
+        status: 405,
+        headers: corsHeaders,
+      });
+    }
 
-  // Last month for incremental sync
+    if (!MP_USER_ID) {
+      return new Response(
+        JSON.stringify({ error: 'MP_USER_ID env var is not set' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // Last month for incremental sync
   const beginDate = new Date();
   beginDate.setMonth(beginDate.getMonth() - 1);
   const beginStr = beginDate.toISOString().split('T')[0];
@@ -247,4 +254,10 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     },
   );
+  } catch (err) {
+    return new Response(JSON.stringify({ error: String(err) }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
 });
