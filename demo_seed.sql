@@ -9,6 +9,7 @@
 
 DO $$
 DECLARE
+  
   -- Cuentas existentes
   acc_mp    uuid := 'f4d34279-7a73-439a-822c-e354517373ae'; -- MP (digital, ARS)
   acc_bna   uuid := 'a113ff16-9977-42ba-9be6-9dffc3034e25'; -- BNA (bank, ARS)
