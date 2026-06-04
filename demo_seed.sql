@@ -11,7 +11,7 @@ DO $$
 DECLARE
   
   -- Cuentas existentes
-  acc_mp    uuid := 'f4d34279-7a73-439a-822c-e354517373ae'; -- MP (digital, ARS)
+  acc_mp    uuid := 'f4d34279-7a73-439a-822c-e354517373ae'; -- MP (digital, ARS) 
   acc_bna   uuid := 'a113ff16-9977-42ba-9be6-9dffc3034e25'; -- BNA (bank, ARS)
   acc_cash  uuid := 'd4e370b3-81ae-40f5-b06d-03f0f7ca9a83'; -- Cash (cash, ARS)
 
